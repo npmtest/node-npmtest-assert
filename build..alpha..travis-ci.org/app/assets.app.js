@@ -79,7 +79,7 @@ instruction
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -117,7 +117,7 @@ instruction
 
 
 
-    // run shared js-env code - pre-function
+    // run shared js-env code - function-before
     /* istanbul ignore next */
     (function () {
         local.assert = function (passed, message) {
@@ -149,12 +149,11 @@ instruction
                 return require('path').resolve(process.cwd(), module || '');
             }
             // search modulePathList
-            [
-                ['node_modules'],
-                modulePathList,
-                require('module').globalPaths
-            ].some(function (modulePathList) {
-                modulePathList.some(function (modulePath) {
+            ['node_modules']
+                .concat(modulePathList)
+                .concat(require('module').globalPaths)
+                .concat([process.env.HOME + '/node_modules', '/usr/local/lib/node_modules'])
+                .some(function (modulePath) {
                     try {
                         tmp = require('path').resolve(process.cwd(), modulePath + '/' + module);
                         result = require('fs').statSync(tmp).isDirectory() && tmp;
@@ -162,8 +161,6 @@ instruction
                     } catch (ignore) {
                     }
                 });
-                return result;
-            });
             return result || '';
         };
 
@@ -340,7 +337,7 @@ instruction
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
 /* jslint-ignore-begin */
 local.templateApidocHtml = '\
 <div class="apidocDiv">\n\
@@ -610,19 +607,32 @@ local.templateApidocHtml = '\
                 template: local.templateApidocHtml
             }, 2);
             // init exampleList
-            options.exampleList = options.exampleList.concat(options.exampleFileList.concat(
-                local.fs.readdirSync(options.dir)
-                    .sort()
-                    .filter(function (file) {
-                        return file.indexOf(options.env.npm_package_main) === 0 ||
-                            (/^(?:readme)\b/i).test(file) ||
-                            (/^(?:index|lib|test)\b.*\.js$/i).test(file);
-                    })
-            ).map(readExample))
-                .filter(function (element) {
-                    return element.trim();
-                })
-                .slice(0, 128);
+            [1, 2, 3, 4].forEach(function (depth) {
+                options.exampleList = options.exampleList.concat(
+                    // http://stackoverflow.com
+                    // /questions/4509624/how-to-limit-depth-for-recursive-file-list
+                    // find . -maxdepth 1 -mindepth 1 -name "*.js" -type f
+                    local.child_process.execSync('find "' + options.dir +
+                        '" -maxdepth ' + depth + ' -mindepth ' + depth +
+                        ' -type f | sed -e "s|' + options.dir +
+                        '/||" | grep -iv ' +
+/* jslint-ignore-begin */
+'"\
+/\\.\\|\\(\\b\\|_\\)\\(\
+bower_component\\|\
+coverage\\|\
+min\\|\
+node_module\\|\
+rollup\\|\
+tmp\\|\
+vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
+" ' +
+/* jslint-ignore-end */
+                            ' | sort | head -n 4096').toString()
+                        .split('\n')
+                );
+            });
+            options.exampleList = options.exampleList.slice(0, 128).map(readExample);
             // init moduleMain
             local.tryCatchOnError(function () {
                 console.error('apidocCreate - requiring ' + options.dir + ' ...');
@@ -709,6 +719,7 @@ log\\|\
 min\\|mock\\|\
 node_module\\|\
 rollup\\|\
+spec\\|\
 test\\|tmp\\|\
 vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 " ' +
@@ -855,7 +866,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     /* istanbul ignore next */
     case 'node':
         // require modules
@@ -932,7 +943,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -971,7 +982,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
     /* istanbul ignore next */
-    // run shared js-env code - pre-function
+    // run shared js-env code - function-before
     (function () {
         local.jsonCopy = function (arg) {
         /*
@@ -2503,7 +2514,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     case 'node':
         // require modules
         local.fs = require('fs');
@@ -2533,7 +2544,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -2572,7 +2583,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
     /* istanbul ignore next */
-    // run shared js-env code - pre-function
+    // run shared js-env code - function-before
     (function () {
         local.httpRequest = function (options, onError) {
         /*
@@ -3065,7 +3076,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
     /* istanbul ignore next */
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     case 'node':
         // require modules
         local.fs = require('fs');
@@ -3155,7 +3166,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // jslint-hack
         local.nop(__dirname);
@@ -3388,7 +3399,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run browser js-env code - pre-init
+    // run browser js-env code - init-before
     case 'browser':
         // require modules
         local.path = {
@@ -3403,7 +3414,7 @@ vendor\\)s\\{0,1\\}\\(\\b\\|_\\)\
 
 
 
-    // run node js-env code - pre-init
+    // run node js-env code - init-before
     case 'node':
         // require modules
         local._fs = local.require('fs');
@@ -5576,7 +5587,7 @@ local.templateCoverageBadgeSvg =
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     case 'node':
         /* istanbul ignore next */
         // run the cli
@@ -5657,7 +5668,7 @@ local.templateCoverageBadgeSvg =
         break;
     }
 }(
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         'use strict';
         var local;
@@ -5753,7 +5764,7 @@ local.templateCoverageBadgeSvg =
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -8233,7 +8244,7 @@ local.CSSLint = CSSLint; local.JSLINT = JSLINT, local.jslintEs6 = jslint; }());
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     /* istanbul ignore next */
     case 'node':
         // require modules
@@ -8278,7 +8289,7 @@ local.CSSLint = CSSLint; local.JSLINT = JSLINT, local.jslintEs6 = jslint; }());
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -8777,7 +8788,7 @@ sjcl.misc.scrypt.blockxor = function(S, Si, D, Di, len) {
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -9415,7 +9426,7 @@ split_lines=split_lines,exports.MAP=MAP,exports.ast_squeeze_more=require("./sque
 
 
     /* istanbul ignore next */
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     case 'node':
         // require modules
         local.fs = require('fs');
@@ -9480,7 +9491,7 @@ split_lines=split_lines,exports.MAP=MAP,exports.ast_squeeze_more=require("./sque
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -9518,7 +9529,7 @@ split_lines=split_lines,exports.MAP=MAP,exports.ast_squeeze_more=require("./sque
 
 
 
-    // run shared js-env code - pre-function
+    // run shared js-env code - function-before
     (function () {
         // init global.debug_inline
         local.global['debug_inline'.replace('_i', 'I')] = local.global[
@@ -9694,7 +9705,7 @@ instruction\n\
 \n\
 \n\
 \n\
-    // run shared js\-env code - pre-init\n\
+    // run shared js\-env code - init-before\n\
     (function () {\n\
         // init local\n\
         local = {};\n\
@@ -9727,8 +9738,8 @@ instruction\n\
 \n\
 \n\
 \n\
-    // post-init\n\
-    // run browser js\-env code - post-init\n\
+    // init-after\n\
+    // run browser js\-env code - init-after\n\
     /* istanbul ignore next */\n\
     case \'browser\':\n\
         local.testRunBrowser = function (event) {\n\
@@ -9816,7 +9827,7 @@ instruction\n\
 \n\
 \n\
 \n\
-    // run node js\-env code - post-init\n\
+    // run node js\-env code - init-after\n\
     /* istanbul ignore next */\n\
     case \'node\':\n\
         // export local\n\
@@ -9923,7 +9934,7 @@ local.assetsDict['/assets.lib.template.js'] = '\
 \n\
 \n\
 \n\
-    // run shared js\-env code - pre-init\n\
+    // run shared js\-env code - init-before\n\
     (function () {\n\
         // init local\n\
         local = {};\n\
@@ -10127,7 +10138,7 @@ local.assetsDict['/assets.readmeCustomOrg.npmdoc.template.md'] = '\
 # npmdoc-{{env.npm_package_name}} \
 \n\
 \n\
-#### api documentation for \
+#### basic api documentation for \
 {{#if env.npm_package_homepage}} \
 [{{env.npm_package_name}} (v{{env.npm_package_version}})]({{env.npm_package_homepage}}) \
 {{#unless env.npm_package_homepage}} \
@@ -10270,7 +10281,7 @@ local.assetsDict['/assets.test.template.js'] = '\
 \n\
 \n\
 \n\
-    // run shared js\-env code - pre-init\n\
+    // run shared js\-env code - init-before\n\
     (function () {\n\
         // init local\n\
         local = {};\n\
@@ -10333,7 +10344,7 @@ local.assetsDict['/assets.test.template.js'] = '\
 \n\
 \n\
 \n\
-    // run shared js\-env code - post-init\n\
+    // run shared js\-env code - init-after\n\
     (function () {\n\
         return;\n\
     }());\n\
@@ -10341,7 +10352,7 @@ local.assetsDict['/assets.test.template.js'] = '\
 \n\
 \n\
 \n\
-    // run browser js\-env code - post-init\n\
+    // run browser js\-env code - init-after\n\
     case \'browser\':\n\
         local.testCase_browser_nullCase = local.testCase_browser_nullCase || function (\n\
             options,\n\
@@ -10361,7 +10372,7 @@ local.assetsDict['/assets.test.template.js'] = '\
 \n\
 \n\
 \n\
-    // run node js\-env code - post-init\n\
+    // run node js\-env code - init-after\n\
     /* istanbul ignore next */\n\
     case \'node\':\n\
         local.testCase_buildApidoc_default = local.testCase_buildApidoc_default || function (\n\
@@ -12193,10 +12204,11 @@ return Utf8ArrayToStr(bff);
             options.packageJson = JSON.parse(local.fs.readFileSync('package.json', 'utf8'));
             switch (local.env.GITHUB_ORG) {
             case 'npmdoc':
-                // update package.json
-                local.objectSetOverride(options.packageJson, local.objectLiteralize({
-                    keywords: ['documentation', local.env.npm_package_buildCustomOrg]
-                }), 2);
+                local.objectSetOverride(options, {
+                    packageJson: {
+                        keywords: ['documentation', local.env.npm_package_buildCustomOrg]
+                    }
+                }, 2);
                 // build apidoc.html
                 onParallel.counter += 1;
                 local.buildApidoc({
@@ -12206,10 +12218,11 @@ return Utf8ArrayToStr(bff);
                 }, onParallel);
                 break;
             case 'npmtest':
-                // update package.json
-                local.objectSetOverride(options.packageJson, local.objectLiteralize({
-                    keywords: ['coverage', 'test', local.env.npm_package_buildCustomOrg]
-                }), 2);
+                local.objectSetOverride(options, {
+                    packageJson: {
+                        keywords: ['coverage', 'test', local.env.npm_package_buildCustomOrg]
+                    }
+                }, 2);
                 break;
             }
             // build README.md
@@ -12332,7 +12345,7 @@ return Utf8ArrayToStr(bff);
                 (/\n```javascript\n\/\*\nexample\.js\n\n[^`]*?\n/),
                 (/\n {8}\$ npm install [^`]*? &&/),
                 (/\n {12}: global;\n[^`]*?\n {8}local\.global\.local = local;\n/),
-                (/\n {8}local\.global\.local = local;\n[^`]*?\n {4}\/\/ post-init\n/),
+                (/\n {8}local\.global\.local = local;\n[^`]*?\n {4}\/\/ init-after\n/),
                 new RegExp('\\n {8}local\\.testRunBrowser = function \\(event\\) \\{\\n' +
                     '[^`]*?^ {12}if \\(!event \\|\\| \\(event &&\\n', 'm'),
                 (/\n {12}\/\/ custom-case\n[^`]*?\n {12}\}\n/),
@@ -12383,15 +12396,15 @@ return Utf8ArrayToStr(bff);
             // search-and-replace - customize dataTo
             [
                 // customize js\-env code
-                new RegExp('\\n {4}\\/\\/ run shared js\\-env code - pre-init\\n[\\S\\s]*?' +
+                new RegExp('\\n {4}\\/\\/ run shared js\\-env code - init-before\\n[\\S\\s]*?' +
                     '^ {4}\\(function \\(\\) \\{\\n', 'm'),
                 (/\n {8}local.global.local = local;\n[\S\s]*?^ {4}\}\(\)\);\n/m),
                 (/\n {4}\/\/ run shared js\-env code - function\n[\S\s]*?\n {4}\}\(\)\);\n/),
                 (/\n {4}\/\/ run browser js\-env code - function\n[\S\s]*?\n {8}break;\n/),
                 (/\n {4}\/\/ run node js\-env code - function\n[\S\s]*?\n {8}break;\n/),
-                new RegExp('\\n {4}\\/\\/ run browser js\\-env code - post-init\\n[\\S\\s]*?' +
+                new RegExp('\\n {4}\\/\\/ run browser js\\-env code - init-after\\n[\\S\\s]*?' +
                     '^ {4}case \'browser\':\n', 'm'),
-                (/\n {4}\/\/ run shared js\-env code - post-init\n[\S\s]*?\n {4}\}\(\)\);\n/)
+                (/\n {4}\/\/ run shared js\-env code - init-after\n[\S\s]*?\n {4}\}\(\)\);\n/)
             ].forEach(function (rgx) {
                 // handle large string-replace
                 options.dataFrom.replace(rgx, function (match0) {
@@ -13361,12 +13374,11 @@ return Utf8ArrayToStr(bff);
                 return require('path').resolve(process.cwd(), module || '');
             }
             // search modulePathList
-            [
-                ['node_modules'],
-                modulePathList,
-                require('module').globalPaths
-            ].some(function (modulePathList) {
-                modulePathList.some(function (modulePath) {
+            ['node_modules']
+                .concat(modulePathList)
+                .concat(require('module').globalPaths)
+                .concat([process.env.HOME + '/node_modules', '/usr/local/lib/node_modules'])
+                .some(function (modulePath) {
                     try {
                         tmp = require('path').resolve(process.cwd(), modulePath + '/' + module);
                         result = require('fs').statSync(tmp).isDirectory() && tmp;
@@ -13374,8 +13386,6 @@ return Utf8ArrayToStr(bff);
                     } catch (ignore) {
                     }
                 });
-                return result;
-            });
             return result || '';
         };
 
@@ -15369,7 +15379,7 @@ instruction\n\
 
 
 
-    // run shared js-env code - post-init
+    // run shared js-env code - init-after
     (function () {
         local.ajaxProgressCounter = 0;
         local.ajaxProgressState = 0;
@@ -15498,7 +15508,7 @@ instruction\n\
 
 
 
-    // run browser js-env code - post-init
+    // run browser js-env code - init-after
     case 'browser':
         // require modules
         local.http = local._http;
@@ -15507,7 +15517,7 @@ instruction\n\
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     /* istanbul ignore next */
     case 'node':
         // require modules
@@ -15678,6 +15688,64 @@ instruction\n\
                 });
             }, local.exit);
             return;
+        case 'cli.customOrgStarFilterNotBuilt':
+            (function () {
+                var options;
+                options = {};
+                options.dict = {};
+                options.list = [];
+                for (options.ii = Number(process.argv[3]);
+                        options.ii < Number(process.argv[4]);
+                        options.ii += 36) {
+                    options.list.push(options.ii);
+                }
+                local.listShuffle(options.list);
+                local.onParallelList(options, function (options2, onParallel) {
+                    onParallel.counter += 1;
+                    local.ajax({
+                        url: 'https://www.npmjs.com/browse/star?offset=' + options2.element
+                    }, function (error, xhr) {
+                        // jslint-hack
+                        local.nop(error);
+                        console.error('cli.customOrgStarFilterNotBuilt - fetched ' + xhr.url);
+                        (xhr.responseText || '').toLowerCase().replace((
+                            /href=\"\/package\/(.+?)\"/g
+                        ), function (match0, match1) {
+                            match0 = local.env.GITHUB_ORG + '/node-' + local.env.GITHUB_ORG +
+                                '-' + match1;
+                            if (options.dict[match0]) {
+                                return;
+                            }
+                            onParallel.counter += 1;
+                            local.onParallelList({ list: [{
+                                url: 'https://raw.githubusercontent.com/' + match0 +
+                                    '/gh-pages/build..alpha..travis-ci.org' +
+                                    '/screenCapture.npmPackageListing.svg'
+                            }, {
+                                url: 'https://registry.npmjs.org/' + local.env.GITHUB_ORG +
+                                    '-' + match1
+                            }] }, function (options2, onParallel) {
+                                onParallel.counter += 1;
+                                local.ajax(options2.element, function (error) {
+                                    if (error && !options.dict[match0]) {
+                                        options.dict[match0] = true;
+                                        console.error(
+                                            'cli.customOrgStarFilterNotBuilt - not built - ' +
+                                                match0
+                                        );
+                                        console.log(match0);
+                                    }
+                                    onParallel();
+                                });
+                            }, function () {
+                                onParallel();
+                            });
+                        });
+                        onParallel();
+                    });
+                }, local.onErrorThrow);
+            }());
+            return;
         case 'dbTableCustomOrgCrudGetManyByQuery':
             local.dbTableCustomOrgCreate(JSON.parse(process.argv[3] || '{}'), function (error) {
                 // validate no error occurred
@@ -15717,7 +15785,7 @@ instruction\n\
                 });
             }, local.exit);
             return;
-        case 'testReportCreate':
+        case 'cli.testReportCreate':
             local.exit(local.testReportCreate(local.tryCatchOnError(function () {
                 return require(local.env.npm_config_dir_build + '/test-report.json');
             }, local.onErrorDefault)).testsFailed);
@@ -15764,7 +15832,7 @@ instruction\n\
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -18359,7 +18427,7 @@ local.templateUiResponseAjax = '\
                             )
                         ) || element.value;
                     });
-                    // pre-init crud.idField
+                    // init-before crud.idField
                     crud.modeQueryByIdInvert = true;
                     local.idFieldInit(crud);
                     // init crud.data.id
@@ -18372,7 +18440,7 @@ local.templateUiResponseAjax = '\
                         crud.data[crud.idField] = (crud.body && crud.body[crud.idAlias]);
                         break;
                     }
-                    // post-init crud.idField
+                    // init-after crud.idField
                     crud.modeQueryByIdInvert = true;
                     local.idFieldInit(crud);
                     nextMiddleware();
@@ -19897,7 +19965,7 @@ local.templateUiResponseAjax = '\
 
 
 
-    // run browser js-env code - post-init
+    // run browser js-env code - init-after
     case 'browser':
         // init state
         local.utility2._stateInit({});
@@ -19905,7 +19973,7 @@ local.templateUiResponseAjax = '\
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     case 'node':
         // init assets.lib.rollup.js
         local.assetsDict['/assets.swgg.rollup.js'] =
@@ -20050,7 +20118,7 @@ local._stateInit({"utility2":{"assetsDict":{"/assets.index.template.html":"<!doc
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -20122,7 +20190,7 @@ instruction
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -20155,8 +20223,8 @@ instruction
 
 
 
-    // post-init
-    // run browser js-env code - post-init
+    // init-after
+    // run browser js-env code - init-after
     /* istanbul ignore next */
     case 'browser':
         local.testRunBrowser = function (event) {
@@ -20244,7 +20312,7 @@ instruction
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     /* istanbul ignore next */
     case 'node':
         // export local
@@ -20439,7 +20507,7 @@ utility2-comment -->\n\
 
 
 
-    // run shared js-env code - pre-init
+    // run shared js-env code - init-before
     (function () {
         // init local
         local = {};
@@ -20502,7 +20570,7 @@ utility2-comment -->\n\
 
 
 
-    // run shared js-env code - post-init
+    // run shared js-env code - init-after
     (function () {
         return;
     }());
@@ -20510,7 +20578,7 @@ utility2-comment -->\n\
 
 
 
-    // run browser js-env code - post-init
+    // run browser js-env code - init-after
     case 'browser':
         local.testCase_browser_nullCase = local.testCase_browser_nullCase || function (
             options,
@@ -20530,7 +20598,7 @@ utility2-comment -->\n\
 
 
 
-    // run node js-env code - post-init
+    // run node js-env code - init-after
     /* istanbul ignore next */
     case 'node':
         local.testCase_buildApidoc_default = local.testCase_buildApidoc_default || function (
